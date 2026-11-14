@@ -1,0 +1,23 @@
+---
+# cPanel Git Version Control deployment script.
+# Runs automatically whenever a "Deploy" is triggered (manually in cPanel UI, or
+# automatically by the GitHub Action in .github/workflows/deploy-cpanel.yml).
+#
+# IMPORTANT - edit DEPLOYPATH below ONCE: replace CPANELUSER with your real cPanel
+# username, and the folder name if this site doesn't live at public_html/sector7xnoida
+# on the server (check cPanel File Manager if unsure).
+#
+# This only COPIES files (never deletes), so inc/config.php - which is not part of
+# this git repo - is never touched and your real DB/admin passwords stay server-only.
+# (Each line below runs in its own shell, so the path is repeated on every line
+# instead of relying on "export" - that does not carry over between lines in cPanel.)
+---
+deployment:
+  tasks:
+    - DEPLOYPATH=/home/CPANELUSER/public_html/sector7xnoida && mkdir -p "$DEPLOYPATH/assets" "$DEPLOYPATH/database" "$DEPLOYPATH/inc" "$DEPLOYPATH/pages"
+    - DEPLOYPATH=/home/CPANELUSER/public_html/sector7xnoida && cp -RT assets "$DEPLOYPATH/assets"
+    - DEPLOYPATH=/home/CPANELUSER/public_html/sector7xnoida && cp -RT database "$DEPLOYPATH/database"
+    - DEPLOYPATH=/home/CPANELUSER/public_html/sector7xnoida && cp -RT pages "$DEPLOYPATH/pages"
+    - DEPLOYPATH=/home/CPANELUSER/public_html/sector7xnoida && cp inc/admin_layout.php inc/bootstrap.php inc/config.sample.php inc/layout.php "$DEPLOYPATH/inc/"
+    - DEPLOYPATH=/home/CPANELUSER/public_html/sector7xnoida && cp index.php "$DEPLOYPATH/"
+    - DEPLOYPATH=/home/CPANELUSER/public_html/sector7xnoida && cp .htaccess "$DEPLOYPATH/"

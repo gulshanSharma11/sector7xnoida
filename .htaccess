@@ -1,0 +1,44 @@
+# Sector7xNoida - clean URLs + protection (Apache / LiteSpeed on cPanel)
+Options -Indexes
+DirectoryIndex index.php
+
+<IfModule mod_rewrite.c>
+RewriteEngine On
+
+# --- Optional: force HTTPS + non-www (uncomment AFTER SSL is working) ---
+# RewriteCond %{HTTPS} off
+# RewriteRule ^ https://sector7xnoida.com%{REQUEST_URI} [L,R=301]
+# RewriteCond %{HTTP_HOST} ^www\.sector7xnoida\.com$ [NC]
+# RewriteRule ^ https://sector7xnoida.com%{REQUEST_URI} [L,R=301]
+
+# Private folders (code, config, SQL) must never be opened from the browser
+RewriteRule ^(inc|pages|database)(/|$) - [F,L]
+
+# Git metadata must never be opened from the browser (defense in depth - the
+# recommended deploy setup clones outside public_html so this normally never exists here)
+RewriteRule ^(\.git|\.cpanel\.yml)(/|$) - [F,L]
+
+# Real files (css, js, images) are served directly, everything else goes to index.php
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^ - [L]
+RewriteRule ^ index.php [L,QSA]
+</IfModule>
+
+<FilesMatch "\.(sql|md|log|ini|sample)$">
+    Require all denied
+</FilesMatch>
+
+# Basic security headers
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# Cache static assets
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css "access plus 1 month"
+    ExpiresByType application/javascript "access plus 1 month"
+    ExpiresByType image/svg+xml "access plus 1 month"
+</IfModule>

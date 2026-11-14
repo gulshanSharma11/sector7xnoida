@@ -1,0 +1,6 @@
+# Real secrets - never commit. Server/local me "config.sample.php" se copy karke banao.
+inc/config.php
+
+.DS_Store
+*.log
+.cpanel.local.yml
