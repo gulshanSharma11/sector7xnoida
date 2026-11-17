@@ -25,13 +25,18 @@
 </section>
 
 <div class="wrap listing">
-  <?php foreach ($groups as $cid => $list): $c = $cats[$cid] ?? null; if (!$c) continue; ?>
-    <section class="cat-section" id="c<?= (int) $cid ?>" data-cat-section="c<?= (int) $cid ?>">
-      <h2><span class="ico" aria-hidden="true"><?= e($c['icon']) ?></span><span class="t"><?= e($c['name']) ?></span><small><?= count($list) ?></small></h2>
-      <div class="pgrid">
-        <?php foreach ($list as $p): echo provider_card($p, $phones[(int) $p['id']] ?? [], $ratings[(int) $p['id']] ?? null); endforeach; ?>
-      </div>
-    </section>
-  <?php endforeach; ?>
-  <p class="empty" id="pempty" hidden>No contact matches your search in this society.</p>
+  <div class="listing-layout">
+    <div class="listing-main">
+      <?php foreach ($groups as $cid => $list): $c = $cats[$cid] ?? null; if (!$c) continue; ?>
+        <section class="cat-section" id="c<?= (int) $cid ?>" data-cat-section="c<?= (int) $cid ?>">
+          <h2><span class="ico" aria-hidden="true"><?= e($c['icon']) ?></span><span class="t"><?= e($c['name']) ?></span><small><?= count($list) ?></small></h2>
+          <div class="pgrid">
+            <?php foreach ($list as $p): echo provider_card($p, $phones[(int) $p['id']] ?? [], $ratings[(int) $p['id']] ?? null); endforeach; ?>
+          </div>
+        </section>
+      <?php endforeach; ?>
+      <p class="empty" id="pempty" hidden>No contact matches your search in this society.</p>
+    </div>
+    <?= render_ad_rail() ?>
+  </div>
 </div>

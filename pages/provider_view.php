@@ -54,6 +54,8 @@ $show = can_see_contact();
         </ul>
       </section>
       <?php endif; ?>
+
+      <?= render_ad_rail() ?>
     </div>
 
     <div>

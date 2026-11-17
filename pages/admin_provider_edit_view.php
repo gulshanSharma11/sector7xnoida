@@ -38,10 +38,12 @@
             <td class="muted"><?= e($ph['tel']) ?></td>
             <td class="muted"><?= $ph['whatsapp'] ? 'Yes' : 'No' ?></td>
             <td class="rowacts">
+              <?php if (is_super_admin()): ?>
               <form method="post" action="<?= e(admin_url('providers/' . $provider['id'])) ?>" class="inline-form" onsubmit="return confirm('Remove this number?')">
                 <?= csrf_field() ?><input type="hidden" name="action" value="delete_phone"><input type="hidden" name="phone_id" value="<?= (int) $ph['id'] ?>">
                 <button class="btn btn-danger btn-sm" type="submit">Remove</button>
               </form>
+              <?php endif; ?>
             </td>
           </tr>
         <?php endforeach; ?>
@@ -74,11 +76,13 @@
             <td><?= e($l['society_name']) ?></td>
             <td class="muted"><?= e($l['category_name']) ?></td>
             <td class="rowacts">
+              <?php if (is_super_admin()): ?>
               <form method="post" action="<?= e(admin_url('providers/' . $provider['id'])) ?>" class="inline-form">
                 <?= csrf_field() ?><input type="hidden" name="action" value="delete_link">
                 <input type="hidden" name="society_id" value="<?= (int) $l['society_id'] ?>"><input type="hidden" name="category_id" value="<?= (int) $l['category_id'] ?>">
                 <button class="btn btn-danger btn-sm" type="submit">Remove</button>
               </form>
+              <?php endif; ?>
             </td>
           </tr>
         <?php endforeach; ?>
@@ -91,12 +95,14 @@
   <form method="post" action="<?= e(admin_url('providers/' . $provider['id'])) ?>" class="admin-form" style="margin-top:14px">
     <?= csrf_field() ?><input type="hidden" name="action" value="add_link">
     <div class="row">
+      <?php if (is_super_admin()): ?>
       <div><label for="society_id">Society</label>
         <select id="society_id" name="society_id" required>
           <option value="">Choose a society...</option>
           <?php foreach ($allSocieties as $s): ?><option value="<?= (int) $s['id'] ?>"><?= e($s['name']) ?></option><?php endforeach; ?>
         </select>
       </div>
+      <?php endif; ?>
       <div><label for="category_id">Category</label>
         <select id="category_id" name="category_id" required>
           <option value="">Choose a category...</option>
@@ -132,6 +138,7 @@
   <?php endif; ?>
 </div>
 
+<?php if (is_super_admin()): ?>
 <div class="admin-card">
   <h2>Delete this provider</h2>
   <p class="muted">Removes it everywhere (phone numbers, society listings and reviews are removed too). This cannot be undone.</p>
@@ -140,3 +147,4 @@
     <button class="btn btn-danger" type="submit">Delete provider</button>
   </form>
 </div>
+<?php endif; ?>

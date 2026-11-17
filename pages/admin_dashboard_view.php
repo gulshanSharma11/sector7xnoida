@@ -1,16 +1,32 @@
-<?php /** @var array $counts $recentReviews */ ?>
+<?php /** @var array $counts $recentReviews @var ?array $society */ ?>
 <div class="admin-head">
-  <div><h1>Dashboard</h1><p class="muted">Quick overview of your directory.</p></div>
+  <div>
+    <h1>Dashboard</h1>
+    <p class="muted"><?= $society ? 'Overview of ' . e($society['name']) . '.' : 'Quick overview of your directory.' ?></p>
+  </div>
 </div>
 
 <div class="admin-stats">
-  <div class="admin-stat"><b><?= $counts['societies'] ?></b><span>Societies</span></div>
-  <div class="admin-stat"><b><?= $counts['categories'] ?></b><span>Categories</span></div>
-  <div class="admin-stat"><b><?= $counts['providers'] ?></b><span>Providers</span></div>
-  <div class="admin-stat"><b><?= $counts['phones'] ?></b><span>Phone numbers</span></div>
-  <div class="admin-stat"><b><?= $counts['reviews'] ?></b><span>Reviews</span></div>
-  <div class="admin-stat"><b><?= $counts['users'] ?></b><span>Logged-in users</span></div>
+  <?php if (!$society): ?>
+    <div class="admin-stat"><b><?= $counts['societies'] ?></b><span>Societies</span></div>
+    <div class="admin-stat"><b><?= $counts['categories'] ?></b><span>Categories</span></div>
+    <div class="admin-stat"><b><?= $counts['providers'] ?></b><span>Providers</span></div>
+    <div class="admin-stat"><b><?= $counts['phones'] ?></b><span>Phone numbers</span></div>
+    <div class="admin-stat"><b><?= $counts['reviews'] ?></b><span>Reviews</span></div>
+    <div class="admin-stat"><b><?= $counts['users'] ?></b><span>Logged-in users</span></div>
+  <?php else: ?>
+    <div class="admin-stat"><b><?= $counts['providers'] ?></b><span>Providers in <?= e($society['name']) ?></span></div>
+    <div class="admin-stat"><b><?= $counts['categories'] ?></b><span>Categories used</span></div>
+    <div class="admin-stat"><b><?= $counts['reviews'] ?></b><span>Reviews</span></div>
+  <?php endif; ?>
 </div>
+
+<?php if ($society): ?>
+<div class="admin-card">
+  <p class="muted">You're a sub admin for <b><?= e($society['name']) ?></b>. You can add new providers and update existing ones in this society, and moderate its reviews. Deleting anything, managing other societies, or editing categories needs a super admin.</p>
+  <a class="btn btn-primary" href="<?= e(admin_url('providers')) ?>">Manage providers &rarr;</a>
+</div>
+<?php endif; ?>
 
 <div class="admin-card">
   <h2>Recent reviews</h2>

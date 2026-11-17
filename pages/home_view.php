@@ -1,4 +1,4 @@
-<?php /** @var array $societies @var int $totalProviders @var int $totalCats @var array $topCats */ ?>
+<?php /** @var array $societies @var int $totalProviders @var int $totalCats @var array $topCats @var array|null $lastSociety */ ?>
 <section class="hero">
   <div class="wrap hero-grid">
     <div class="hero-copy">
@@ -28,6 +28,24 @@
   </div>
 </section>
 
+<?php if ($lastSociety): ?>
+<section class="section section-alt" id="continue-society">
+  <div class="wrap">
+    <div class="continue-card">
+      <a class="continue-main" href="<?= e(url('/society/' . $lastSociety['slug'])) ?>">
+        <span class="continue-ico" aria-hidden="true"><?= e(mb_strtoupper(mb_substr($lastSociety['name'], 0, 1))) ?></span>
+        <span class="continue-text">
+          <b>Welcome back! Continue to <?= e($lastSociety['name']) ?></b>
+          <small>Your last viewed society</small>
+        </span>
+        <span class="continue-arrow" aria-hidden="true">&rarr;</span>
+      </a>
+      <a class="continue-switch" href="<?= e(url('/switch-society')) ?>">Not your society? Choose a different one below</a>
+    </div>
+  </div>
+</section>
+<?php endif; ?>
+
 <section class="section" id="societies">
   <div class="wrap">
     <div class="section-head">
@@ -52,6 +70,8 @@
     <p class="empty" id="socempty" hidden>No society matches that name.</p>
   </div>
 </section>
+
+<?= render_ad_banner() ?>
 
 <section class="section section-alt">
   <div class="wrap">

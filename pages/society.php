@@ -7,6 +7,10 @@ if (!$society) not_found();
 // old links (e.g. /society/mahaguna-moderne) -> clean URL
 if ($society['slug'] !== $slug) redirect(url('/society/' . $society['slug']), 301);
 
+// Remember this as "their" society for a year, so a return visit to the
+// home page can offer a one-tap shortcut back here.
+remember_society($society['slug']);
+
 $rows = db()->prepare(
     'SELECT sp.category_id, p.id, p.name, p.address, p.specialization, p.website, p.priority
      FROM society_providers sp JOIN providers p ON p.id = sp.provider_id

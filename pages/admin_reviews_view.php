@@ -55,10 +55,12 @@
               <?php endif; ?>
             </td>
             <td class="rowacts">
+              <?php if (is_super_admin()): ?>
               <form method="post" action="<?= e(admin_url('reviews')) ?>" class="inline-form" onsubmit="return confirm('Delete this review?')">
                 <?= csrf_field() ?><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="<?= (int) $r['id'] ?>">
                 <button class="btn btn-danger btn-sm" type="submit">Delete</button>
               </form>
+              <?php endif; ?>
             </td>
           </tr>
         <?php endforeach; ?>

@@ -19,6 +19,8 @@ $topCats = db()->query(
      ORDER BY n DESC, c.name LIMIT 12'
 )->fetchAll();
 
+$lastSociety = remembered_society();
+
 render('home_view', [
     'title'  => 'Sector7xNoida - Trusted local numbers for your society in Noida',
     'desc'   => 'Find doctors, pandit ji, RO technicians, plumbers, milkmen, drivers and more for Mahagun Moderne, Hyde Park and ' . (count($societies) - 2) . '+ Noida societies. All queries answered at one place.',
@@ -34,4 +36,5 @@ render('home_view', [
         ],
     ]],
     'societies' => $societies, 'totalProviders' => $totalProviders, 'totalCats' => $totalCats, 'topCats' => $topCats,
+    'lastSociety' => $lastSociety,
 ]);

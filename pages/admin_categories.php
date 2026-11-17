@@ -1,5 +1,5 @@
 <?php
-require_admin();
+require_super_admin();
 
 $error = '';
 $success = '';

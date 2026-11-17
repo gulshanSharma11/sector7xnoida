@@ -30,6 +30,10 @@ try {
         case $path === '/logout':
             require __DIR__ . '/pages/logout.php';
             break;
+        case $path === '/switch-society':
+            forget_society();
+            redirect(url('/') . '#societies');
+            break;
         case $path === '/admin/login':
             require __DIR__ . '/pages/admin_login.php';
             break;
@@ -54,6 +58,16 @@ try {
             break;
         case $path === '/admin/reviews':
             require __DIR__ . '/pages/admin_reviews.php';
+            break;
+        case $path === '/admin/ads':
+            require __DIR__ . '/pages/admin_ads.php';
+            break;
+        case $path === '/admin/admins':
+            require __DIR__ . '/pages/admin_admins.php';
+            break;
+        case (bool) preg_match('~^/ad/(\d+)$~', $path, $m):
+            $_GET['id'] = $m[1];
+            require __DIR__ . '/pages/ad_click.php';
             break;
         case $path === '/sitemap.xml':
             require __DIR__ . '/pages/sitemap.php';

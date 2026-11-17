@@ -1,11 +1,19 @@
 <?php
 require_admin();
+$societyId = admin_society_id(); // null for super admin
 
 $id = (int) ($_GET['id'] ?? 0);
 $st = db()->prepare('SELECT * FROM providers WHERE id = ?');
 $st->execute([$id]);
 $provider = $st->fetch();
 if (!$provider) not_found();
+
+if ($societyId) {
+    // Sub admin: only allowed to touch a provider that is listed under their own society.
+    $check = db()->prepare('SELECT COUNT(*) FROM society_providers WHERE provider_id = ? AND society_id = ?');
+    $check->execute([$id, $societyId]);
+    if ((int) $check->fetchColumn() === 0) not_found();
+}
 
 $error = '';
 $success = '';
@@ -16,7 +24,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $action = (string) ($_POST['action'] ?? '');
 
-        if ($action === 'save_details') {
+        // Sub admins can add & update, never delete.
+        $subBlocked = $societyId && in_array($action, ['delete_phone', 'delete_link', 'delete_provider'], true);
+
+        if ($subBlocked) {
+            $error = 'Only a super admin can delete this.';
+        } elseif ($action === 'save_details') {
             $name = trim((string) ($_POST['name'] ?? ''));
             $address = trim((string) ($_POST['address'] ?? ''));
             $spec = trim((string) ($_POST['specialization'] ?? ''));
@@ -47,19 +60,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             db()->prepare('DELETE FROM provider_phones WHERE id = ? AND provider_id = ?')->execute([$phoneId, $id]);
             redirect(admin_url('providers/' . $id) . '?saved=1');
         } elseif ($action === 'add_link') {
-            $societyId = (int) ($_POST['society_id'] ?? 0);
+            // Sub admin can only ever link into their own society.
+            $linkSocietyId = $societyId ?: (int) ($_POST['society_id'] ?? 0);
             $categoryId = (int) ($_POST['category_id'] ?? 0);
-            if ($societyId && $categoryId) {
+            if ($linkSocietyId && $categoryId) {
                 db()->prepare('INSERT IGNORE INTO society_providers (society_id, category_id, provider_id) VALUES (?,?,?)')
-                    ->execute([$societyId, $categoryId, $id]);
+                    ->execute([$linkSocietyId, $categoryId, $id]);
                 redirect(admin_url('providers/' . $id) . '?saved=1');
             }
-            $error = 'Choose both a society and a category.';
+            $error = 'Choose a category.';
         } elseif ($action === 'delete_link') {
-            $societyId = (int) ($_POST['society_id'] ?? 0);
+            $linkSocietyId = (int) ($_POST['society_id'] ?? 0);
             $categoryId = (int) ($_POST['category_id'] ?? 0);
             db()->prepare('DELETE FROM society_providers WHERE society_id = ? AND category_id = ? AND provider_id = ?')
-                ->execute([$societyId, $categoryId, $id]);
+                ->execute([$linkSocietyId, $categoryId, $id]);
             redirect(admin_url('providers/' . $id) . '?saved=1');
         } elseif ($action === 'delete_provider') {
             db()->prepare('DELETE FROM providers WHERE id = ?')->execute([$id]);
@@ -75,15 +89,25 @@ $phones = db()->prepare('SELECT * FROM provider_phones WHERE provider_id = ? ORD
 $phones->execute([$id]);
 $phones = $phones->fetchAll();
 
-$links = db()->prepare(
-    'SELECT sp.society_id, sp.category_id, s.name AS society_name, c.name AS category_name
-     FROM society_providers sp JOIN societies s ON s.id = sp.society_id JOIN categories c ON c.id = sp.category_id
-     WHERE sp.provider_id = ? ORDER BY s.name, c.name'
-);
-$links->execute([$id]);
+if ($societyId) {
+    // Sub admin only sees/manages this provider's listing(s) within their own society.
+    $links = db()->prepare(
+        'SELECT sp.society_id, sp.category_id, s.name AS society_name, c.name AS category_name
+         FROM society_providers sp JOIN societies s ON s.id = sp.society_id JOIN categories c ON c.id = sp.category_id
+         WHERE sp.provider_id = ? AND sp.society_id = ? ORDER BY c.name'
+    );
+    $links->execute([$id, $societyId]);
+} else {
+    $links = db()->prepare(
+        'SELECT sp.society_id, sp.category_id, s.name AS society_name, c.name AS category_name
+         FROM society_providers sp JOIN societies s ON s.id = sp.society_id JOIN categories c ON c.id = sp.category_id
+         WHERE sp.provider_id = ? ORDER BY s.name, c.name'
+    );
+    $links->execute([$id]);
+}
 $links = $links->fetchAll();
 
-$allSocieties = db()->query('SELECT id, name FROM societies ORDER BY name')->fetchAll();
+$allSocieties = $societyId ? [] : db()->query('SELECT id, name FROM societies ORDER BY name')->fetchAll();
 $allCategories = db()->query('SELECT id, name FROM categories ORDER BY name')->fetchAll();
 
 $ratingStats = ratings_for([$id]);

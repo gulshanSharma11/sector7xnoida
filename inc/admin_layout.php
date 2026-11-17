@@ -3,11 +3,24 @@
 $here = strtok($_SERVER['REQUEST_URI'] ?? '/', '?');
 $navItems = [
     ['dashboard',  admin_url(''),           'Dashboard'],
-    ['societies',  admin_url('societies'),  'Societies'],
-    ['categories', admin_url('categories'), 'Categories'],
-    ['providers',  admin_url('providers'),  'Providers'],
-    ['reviews',    admin_url('reviews'),    'Reviews &amp; ratings'],
 ];
+if (is_super_admin()) {
+    $navItems[] = ['societies',  admin_url('societies'),  'Societies'];
+    $navItems[] = ['categories', admin_url('categories'), 'Categories'];
+}
+$navItems[] = ['providers', admin_url('providers'), 'Providers'];
+$navItems[] = ['reviews',   admin_url('reviews'),   'Reviews &amp; ratings'];
+if (is_super_admin()) {
+    $navItems[] = ['ads',    admin_url('ads'),    'Advertisements'];
+    $navItems[] = ['admins', admin_url('admins'), 'Admin accounts'];
+}
+$me = current_admin();
+$meSocietyName = '';
+if ($me && !empty($me['society_id'])) {
+    $st = db()->prepare('SELECT name FROM societies WHERE id = ?');
+    $st->execute([$me['society_id']]);
+    $meSocietyName = (string) $st->fetchColumn();
+}
 function nav_active(string $href, string $here): bool
 {
     if ($href === admin_url('') && $here === admin_url('')) return true;
@@ -38,6 +51,13 @@ function nav_active(string $href, string $here): bool
       <?php endforeach; ?>
     </nav>
     <div class="admin-sidebar-foot">
+      <?php if ($me): ?>
+        <div class="admin-whoami">
+          <b><?= e($me['username']) ?></b>
+          <span class="role-badge role-<?= e($me['role']) ?>"><?= $me['role'] === 'super' ? 'Super admin' : 'Sub admin' ?></span>
+          <?php if ($meSocietyName !== ''): ?><small><?= e($meSocietyName) ?></small><?php endif; ?>
+        </div>
+      <?php endif; ?>
       <a href="<?= e(url('/')) ?>" target="_blank" rel="noopener">View live site &rarr;</a>
       <form method="post" action="<?= e(admin_url('logout')) ?>"><?= csrf_field() ?><button class="btn btn-ghost btn-sm btn-block" type="submit">Logout</button></form>
     </div>

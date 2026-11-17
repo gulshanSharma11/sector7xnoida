@@ -144,6 +144,46 @@ function redirect(string $to, int $code = 302): never
     exit;
 }
 
+/* ---------- "Remember my society" (cookie, 1 year) ----------
+ * Set whenever a visitor opens a society page. Read on the home page so a
+ * returning visitor sees a "Continue to <their society>" shortcut above the
+ * full list - they can always pick a different society from the list below,
+ * this never forces them into one. */
+const S7X_SOCIETY_COOKIE = 's7x_society';
+
+function remember_society(string $slug): void
+{
+    setcookie(S7X_SOCIETY_COOKIE, $slug, [
+        'expires'  => time() + 60 * 60 * 24 * 365,
+        'path'     => '/',
+        'secure'   => is_https(),
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
+}
+
+function forget_society(): void
+{
+    setcookie(S7X_SOCIETY_COOKIE, '', [
+        'expires'  => time() - 3600,
+        'path'     => '/',
+        'secure'   => is_https(),
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
+}
+
+/** @return array{id:int,name:string,slug:string}|null */
+function remembered_society(): ?array
+{
+    $slug = (string) ($_COOKIE[S7X_SOCIETY_COOKIE] ?? '');
+    if ($slug === '') return null;
+    $st = db()->prepare('SELECT id, name, slug FROM societies WHERE slug = ? LIMIT 1');
+    $st->execute([$slug]);
+    $row = $st->fetch();
+    return $row ?: null;
+}
+
 /* ---------- Rendering ---------- */
 function render(string $view, array $data = []): void
 {
@@ -171,7 +211,24 @@ function admin_url(string $path = ''): string
 
 function is_admin(): bool
 {
-    return !empty($_SESSION['admin']);
+    return !empty($_SESSION['admin']['id']);
+}
+
+function current_admin(): ?array
+{
+    return $_SESSION['admin'] ?? null;
+}
+
+/** Super admin = full power. Sub admin = scoped to one society (add/update only, no delete). */
+function is_super_admin(): bool
+{
+    return (current_admin()['role'] ?? '') === 'super';
+}
+
+function admin_society_id(): ?int
+{
+    $s = current_admin()['society_id'] ?? null;
+    return $s !== null ? (int) $s : null;
 }
 
 function require_admin(): void
@@ -180,6 +237,26 @@ function require_admin(): void
         redirect(admin_url('login') . '?next=' . rawurlencode($_SERVER['REQUEST_URI'] ?? admin_url()));
         exit;
     }
+}
+
+/** Use on pages only a super admin may open (society list, categories, ads, admin accounts). */
+function require_super_admin(): void
+{
+    require_admin();
+    if (!is_super_admin()) {
+        http_response_code(403);
+        render_admin('admin_forbidden_view', ['title' => 'Not allowed | Admin | ' . cfg('site', 'name')]);
+        exit;
+    }
+}
+
+/**
+ * A sub admin may only touch the society they were assigned. Returns true for super admins
+ * (no restriction) or sub admins whose society_id matches $societyId.
+ */
+function admin_can_manage_society(int $societyId): bool
+{
+    return is_super_admin() || admin_society_id() === $societyId;
 }
 
 function render_admin(string $view, array $data = []): void
@@ -329,4 +406,73 @@ function group_phones(array $rows): array
     $out = [];
     foreach ($rows as $r) $out[(int) $r['provider_id']][] = $r;
     return $out;
+}
+
+/* ---------- Advertisements ---------- */
+
+/** Where uploaded ad images live. Deliberately OUTSIDE assets/ so a future git deploy
+ *  (which only copies the assets/ folder from the repo) never wipes an uploaded image. */
+function ads_upload_dir(): string
+{
+    return S7X_ROOT . '/uploads/ads';
+}
+
+function ads_upload_url(string $file): string
+{
+    return url('/uploads/ads/' . $file);
+}
+
+/** @return array<int,array<string,mixed>> */
+function active_ads(string $placement, int $limit = 3): array
+{
+    static $cache = [];
+    if (isset($cache[$placement])) return $cache[$placement];
+    $st = db()->prepare('SELECT * FROM ads WHERE placement = ? AND active = 1 ORDER BY sort ASC, id DESC LIMIT ' . max(1, $limit));
+    $st->execute([$placement]);
+    return $cache[$placement] = $st->fetchAll();
+}
+
+function ad_is_video(string $file): bool
+{
+    return (bool) preg_match('~\.(mp4|webm|mov)(\?.*)?$~i', $file);
+}
+
+function ad_card_html(array $ad): string
+{
+    $src = preg_match('~^https?://~i', $ad['image_url']) ? $ad['image_url'] : ads_upload_url($ad['image_url']);
+    $href = $ad['link_url'] !== '' ? url('/ad/' . (int) $ad['id']) : '#';
+    // If the image/video URL fails to load (e.g. a hotlink-protected search-engine proxy link),
+    // hide the whole card instead of showing a broken-image icon.
+    $onerror = "this.closest('.ad-card').style.display='none'";
+    $media = ad_is_video($ad['image_url'])
+        ? '<video src="' . e($src) . '" autoplay muted loop playsinline onerror="' . e($onerror) . '"></video>'
+        : '<img src="' . e($src) . '" alt="' . e($ad['title']) . '" loading="lazy" onerror="' . e($onerror) . '">';
+    return '<a class="ad-card" href="' . e($href) . '" target="_blank" rel="noopener sponsored nofollow" title="' . e($ad['title']) . '">'
+        . $media . '<span class="ad-tag">Advertisement</span></a>';
+}
+
+/** Sidebar rail - used on pages with a two-column listing layout (society, provider).
+ *  Shows up to 10 ads; if more than ~3 fit, the rail itself scrolls (see .ad-rail CSS)
+ *  so the page layout never breaks no matter how many ads get added. */
+function render_ad_rail(): string
+{
+    $ads = active_ads('rail', 10);
+    if (!$ads) return '';
+    $h = '<aside class="ad-rail" aria-label="Advertisement">';
+    foreach ($ads as $ad) $h .= ad_card_html($ad);
+    $h .= '</aside>';
+    return $h;
+}
+
+/** Full-width horizontal strip - used between sections (home page etc).
+ *  One ad = a plain centered banner. Multiple ads = a horizontally scrollable strip. */
+function render_ad_banner(): string
+{
+    $ads = active_ads('banner', 10);
+    if (!$ads) return '';
+    $multi = count($ads) > 1;
+    $h = '<div class="wrap"><div class="ad-banner' . ($multi ? ' ad-banner-multi' : '') . '">';
+    foreach ($ads as $ad) $h .= ad_card_html($ad);
+    $h .= '</div></div>';
+    return $h;
 }

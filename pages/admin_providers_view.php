@@ -1,4 +1,4 @@
-<?php /** @var array $providers $ratings @var string $error $success $q @var int $page $perPage $total */ ?>
+<?php /** @var array $providers $ratings $categories @var string $error $success $q @var int $page $perPage $total */ ?>
 <div class="admin-head">
   <div><h1>Providers</h1><p class="muted"><?= $total ?> total — doctors, plumbers, pandits, milkmen, etc.</p></div>
 </div>
@@ -12,6 +12,14 @@
     <?= csrf_field() ?><input type="hidden" name="action" value="add">
     <div class="row">
       <div><label for="pname">Name</label><input id="pname" name="name" type="text" required placeholder="e.g. Dr. Sharma Clinic"></div>
+      <?php if ($categories): ?>
+        <div><label for="category_id">Category</label>
+          <select id="category_id" name="category_id" required>
+            <option value="">Choose a category...</option>
+            <?php foreach ($categories as $c): ?><option value="<?= (int) $c['id'] ?>"><?= e($c['name']) ?></option><?php endforeach; ?>
+          </select>
+        </div>
+      <?php endif; ?>
     </div>
     <div class="actions"><button class="btn btn-primary" type="submit">Add &amp; continue editing</button></div>
     <p class="small muted">You'll add phone numbers, address, society/category and other details next.</p>
