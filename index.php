@@ -8,6 +8,33 @@ if ($base !== '' && str_starts_with($uri, $base)) $uri = substr($uri, strlen($ba
 $path = '/' . trim(rawurldecode($uri), '/');
 if ($path === '/index.php') $path = '/';
 
+// Serve real static files (CSS/JS/images/ad uploads) directly from PHP.
+// Some hosts don't apply .htaccess's "serve real files directly" rewrite rule
+// reliably, so every request - even for /assets/style.css - ends up here. This
+// bypasses that entirely: no .htaccess cooperation needed.
+if (preg_match('~^/(assets|uploads)/~', $path)) {
+    $rel = ltrim($path, '/');
+    $full = realpath(S7X_ROOT . '/' . $rel);
+    $allowedBase = realpath(S7X_ROOT);
+    if ($full && $allowedBase && str_starts_with($full, $allowedBase . DIRECTORY_SEPARATOR) && is_file($full)) {
+        $ext = strtolower(pathinfo($full, PATHINFO_EXTENSION));
+        $mimes = [
+            'css' => 'text/css', 'js' => 'application/javascript',
+            'svg' => 'image/svg+xml', 'png' => 'image/png', 'jpg' => 'image/jpeg',
+            'jpeg' => 'image/jpeg', 'gif' => 'image/gif', 'webp' => 'image/webp',
+            'ico' => 'image/x-icon', 'woff' => 'font/woff', 'woff2' => 'font/woff2',
+            'mp4' => 'video/mp4', 'webm' => 'video/webm', 'mov' => 'video/quicktime',
+            'txt' => 'text/plain',
+        ];
+        header('Content-Type: ' . ($mimes[$ext] ?? 'application/octet-stream'));
+        header('Content-Length: ' . filesize($full));
+        header('Cache-Control: public, max-age=2592000');
+        readfile($full);
+        exit;
+    }
+    not_found();
+}
+
 try {
     switch (true) {
         case $path === '/':
